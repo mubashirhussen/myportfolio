@@ -1,16 +1,83 @@
-# React + Vite
+# Sheik Mubashir Hussen - Portfolio Website
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A premium, interactive personal portfolio website showcasing my experience, skills, and projects in Full Stack Development, Data Science, Machine Learning, and Cloud Engineering.
 
-Currently, two official plugins are available:
+## 🚀 Live Repository
+- **GitHub Repository:** https://github.com/mubashirhussen/myportfolio
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🛠️ Tech Stack
+- **Frontend:** React.js, Vite, Tailwind CSS, Lucide icons, Framer Motion
+- **Build Tool:** Vite (Fast Refresh & HMR)
+- **Deployment:** Vercel (Support for serverless configuration)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 📬 Automated Contact Form Notifications
+The contact form in the **Get in Touch** section is configured to deliver visitor submissions instantly in the background without needing a backend server. 
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+It supports multiple notification channels configured via environment variables:
+1. **Email Alerts (Web3Forms):** Forwards submissions directly to your email inbox. (100% Free)
+2. **Mobile Push Alerts (Telegram Bot):** Delivers instant notifications directly to your Telegram app. (100% Free)
+3. **Desktop/Mobile Push Notifications (ntfy.sh):** Sends instant push alerts to your desktop browser or mobile phone via the ntfy application. (100% Free)
+
+### Environment Variable Setup (`.env` / `.env.local`)
+To enable background submissions, create a `.env.local` file in the root folder and add the following keys:
+
+```env
+# Web3Forms Email Configuration
+# Get your free key at https://web3forms.com/
+VITE_WEB3FORMS_ACCESS_KEY=your_web3forms_access_key
+
+# Telegram Mobile Alert Configuration (Optional)
+# Create a bot via BotFather and retrieve chat ID via userinfobot
+VITE_TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+VITE_TELEGRAM_CHAT_ID=your_telegram_chat_id
+
+# ntfy.sh Mobile Alert Configuration (Optional)
+# Change 'mubashir_portfolio_contact' to a secret topic name for privacy
+VITE_NTFY_TOPIC=mubashir_portfolio_contact
+```
+
+> **Note:** If no environment keys are set, the form automatically falls back to client-side `mailto:` redirection, ensuring that the form remains fully functional.
+
+---
+
+## 💼 Portfolio Sections
+- **Hero & About:** Brief professional pitch, personal links, and technical summary.
+- **Experience:** Internships at TAO Digital Solutions, CITD, Huebits, and NIT Trichy.
+- **Skills:** Categorized list covering Languages (Python, Java, SQL, C), Web Frameworks, Databases, Machine Learning (NLP, Sentence Transformers), Cloud (AWS, Azure), and Data Engineering (Apache Spark, Databricks).
+- **Projects:** Featured applications including *GuardianMail AI* (email security engine) and *AI Resume Screening System* (semantic candidate scoring).
+- **Certifications & Achievements:** Credentials and awards in DevOps, Google Cloud, and DSA.
+
+---
+
+## 💻 Local Development
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/mubashirhussen/myportfolio.git
+   cd myportfolio
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Setup environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+   *(Open `.env.local` and add your respective keys)*
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Build for production:
+   ```bash
+   npm run build
+   ```

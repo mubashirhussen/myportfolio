@@ -25,3 +25,5 @@ dist-ssr
 
 # Backups
 backup_old_portfolio/
+
+.vercel

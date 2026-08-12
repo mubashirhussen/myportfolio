@@ -17,6 +17,8 @@ export default function Contact() {
     message: ''
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -25,7 +27,7 @@ export default function Contact() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
@@ -45,27 +47,170 @@ export default function Contact() {
       return;
     }
 
+    setIsSubmitting(true);
     setStatus({
-      type: 'success',
-      message: 'Opening your email client to send the message...'
+      type: 'loading',
+      message: 'Sending your message...'
     });
 
-    const mailtoSubject = encodeURIComponent(`[Portfolio Contact] ${formData.subject}`);
-    const mailtoBody = encodeURIComponent(
-      `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
-    );
+    const web3formsKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
+    const telegramBotToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    const telegramChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+    const ntfyTopic = import.meta.env.VITE_NTFY_TOPIC;
 
-    window.location.href = `mailto:${email}?subject=${mailtoSubject}&body=${mailtoBody}`;
+    // Check if configuration keys are set (not empty and not the placeholder strings)
+    const isWeb3FormsConfigured = web3formsKey && 
+      web3formsKey !== 'your_web3forms_access_key_here' && 
+      web3formsKey.trim() !== '';
 
-    setTimeout(() => {
+    const isTelegramConfigured = telegramBotToken && 
+      telegramChatId && 
+      telegramBotToken !== 'your_telegram_bot_token_here' && 
+      telegramChatId !== 'your_telegram_chat_id_here' &&
+      telegramBotToken.trim() !== '' && 
+      telegramChatId.trim() !== '';
+
+    const isNtfyConfigured = ntfyTopic && 
+      ntfyTopic !== 'your_ntfy_topic_here' && 
+      ntfyTopic.trim() !== '';
+
+    const promises = [];
+
+    if (isWeb3FormsConfigured) {
+      promises.push(
+        fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            access_key: web3formsKey,
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+            from_name: 'Portfolio Contact Form'
+          })
+        }).then(async (res) => {
+          const data = await res.json();
+          if (!data.success) {
+            throw new Error(data.message || 'Web3Forms failed to send.');
+          }
+          return 'email';
+        })
+      );
+    }
+
+    if (isTelegramConfigured) {
+      const telegramText = `📬 *New Contact Form Submission*\n\n` +
+                           `👤 *Name:* ${formData.name}\n` +
+                           `📧 *Email:* ${formData.email}\n` +
+                           `📝 *Subject:* ${formData.subject}\n\n` +
+                           `💬 *Message:*\n${formData.message}`;
+      promises.push(
+        fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: telegramText,
+            parse_mode: 'Markdown'
+          })
+        }).then(async (res) => {
+          const data = await res.json();
+          if (!data.ok) {
+            throw new Error(data.description || 'Telegram failed to send.');
+          }
+          return 'telegram';
+        })
+      );
+    }
+
+    if (isNtfyConfigured) {
+      promises.push(
+        fetch(`https://ntfy.sh/${ntfyTopic}`, {
+          method: 'POST',
+          headers: {
+            'Title': `Portfolio Contact: ${formData.subject}`,
+            'Tags': 'incoming_envelope,speech_balloon',
+            'Click': `mailto:${formData.email}`
+          },
+          body: `From: ${formData.name} <${formData.email}>\n\nMessage:\n${formData.message}`
+        }).then(async (res) => {
+          if (!res.ok) {
+            throw new Error('ntfy failed to send.');
+          }
+          return 'ntfy';
+        })
+      );
+    }
+
+    if (promises.length === 0) {
+      // Fallback: If neither is configured, open the local email client (mailto:)
+      setStatus({
+        type: 'success',
+        message: 'Opening your email client to send the message...'
+      });
+
+      const mailtoSubject = encodeURIComponent(`[Portfolio Contact] ${formData.subject}`);
+      const mailtoBody = encodeURIComponent(
+        `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
+      );
+
+      window.location.href = `mailto:${email}?subject=${mailtoSubject}&body=${mailtoBody}`;
+      
+      setIsSubmitting(false);
+      setTimeout(() => {
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+        setStatus({ type: '', message: '' });
+      }, 3000);
+      return;
+    }
+
+    try {
+      const results = await Promise.all(promises);
+      
+      let successMsg = 'Thank you! Your message has been sent successfully.';
+      const sentChannels = [];
+      if (results.includes('email')) sentChannels.push('email');
+      if (results.includes('telegram') || results.includes('ntfy')) sentChannels.push('mobile');
+
+      if (sentChannels.includes('email') && sentChannels.includes('mobile')) {
+        successMsg = 'Thank you! Your message was sent successfully to email and mobile.';
+      } else if (sentChannels.includes('email')) {
+        successMsg = 'Thank you! Your message was sent successfully via email.';
+      } else if (sentChannels.includes('mobile')) {
+        successMsg = 'Thank you! Your message was sent successfully to mobile.';
+      }
+
+      setStatus({
+        type: 'success',
+        message: successMsg
+      });
+
       setFormData({
         name: '',
         email: '',
         subject: '',
         message: ''
       });
-      setStatus({ type: '', message: '' });
-    }, 3000);
+    } catch (error) {
+      console.error('Submission error:', error);
+      setStatus({
+        type: 'error',
+        message: `Failed to send message: ${error.message || 'Unknown error'}`
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -155,11 +300,15 @@ export default function Contact() {
                   className={`flex items-start p-3 rounded-lg border text-xs sm:text-sm font-sans ${
                     status.type === 'success' 
                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-450' 
+                      : status.type === 'loading'
+                      ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
                       : 'bg-rose-500/10 border-rose-500/20 text-rose-450'
                   }`}
                 >
                   {status.type === 'success' ? (
                     <CheckCircle size={16} className="mr-2 mt-0.5 flex-shrink-0" />
+                  ) : status.type === 'loading' ? (
+                    <div className="mr-2 mt-0.5 w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                   ) : (
                     <AlertCircle size={16} className="mr-2 mt-0.5 flex-shrink-0" />
                   )}
@@ -239,9 +388,12 @@ export default function Contact() {
               {/* Submit */}
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg text-sm font-semibold text-white bg-accentIndigo hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] transition-all duration-300 cursor-pointer"
+                disabled={isSubmitting}
+                className={`w-full inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg text-sm font-semibold text-white bg-accentIndigo hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] transition-all duration-300 cursor-pointer ${
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                Send Message
+                {isSubmitting ? 'Sending...' : 'Send Message'}
                 <Send size={14} className="ml-2" />
               </button>
             </form>
